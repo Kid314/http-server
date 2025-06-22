@@ -6,3 +6,8 @@ To some reasons , I want to write a high performance http server
 ## 3.have Complete send buffer management(epollout)
 ## 4.use Zero copy and views(string_view) 
 - c++17
+## 5.Take one step at a time
+## final target
+* 1.maybe 100,000 qps
+* 2.clear code style
+* 3.....hope i can finish it :)
