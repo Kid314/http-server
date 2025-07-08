@@ -1,15 +1,9 @@
-cmake_minimum_required(VERSION 3.31)
-project(http-server)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
+cmake_minimum_required(VERSION 3.16)
+project(http_server CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+file(GLOB_RECURSE SOURCES "src/*.cpp")
+add_executable(http_server ${SOURCES})
+target_include_directories(http_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(Threads REQUIRED)
-
-add_executable(http-server src/main.cpp)
-
-target_link_libraries(http-server Threads::Threads)
-
-message(STATUS "Build target:http-server")
-message(STATUS "C++ standard:${CMAKE_CXX_STANDARD}")
+target_link_libraries(http_server PRIVATE Threads::Threads)
