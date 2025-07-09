@@ -5,15 +5,15 @@
 #include <string>
 #include <string_view>
 
-class SendBuffer {
+class SendBuffer
+{
 public:
+    void consume(size_t bytes);
     void append(const char* data, size_t len);
     void append(const std::string& str);
-    const char* data() const;
-    size_t size() const;
-    void consume(size_t bytes);
-    bool empty() const;
-
+    [[nodiscard]] const char* data() const;
+    [[nodiscard]] size_t size() const;
+    [[nodiscard]] bool empty() const;
 private:
     std::vector<char> buffer_;
 };

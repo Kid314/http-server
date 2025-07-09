@@ -4,7 +4,6 @@
 
 #include "threadpool.h"
 
-// the constructor just launches some amount of workers
 ThreadPool::ThreadPool(size_t threads) : stop_(false) {
     for(size_t i = 0; i < threads; ++i)
         workers_.emplace_back(
@@ -26,13 +25,15 @@ ThreadPool::ThreadPool(size_t threads) : stop_(false) {
         );
 }
 
-// the destructor joins all threads
-ThreadPool::~ThreadPool() {
+ThreadPool::~ThreadPool()
+{
     {
         std::unique_lock<std::mutex> lock(queue_mutex_);
         stop_ = true;
     }
     condition_.notify_all();
     for(std::thread &worker: workers_)
+    {
         worker.join();
+    }
 }

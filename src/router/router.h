@@ -11,7 +11,8 @@ class HttpRequest;  // Forward declaration
 
 using HttpHandler = std::function<void(const HttpRequest&, HttpResponse&)>;
 
-class Router {
+class Router
+{
 public:
     void add_route(std::string_view path, HttpHandler handler);
     void route(const HttpRequest& req, HttpResponse& res);

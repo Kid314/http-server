@@ -15,7 +15,8 @@
 #include <memory>
 #include <stdexcept>
 
-class ThreadPool {
+class ThreadPool
+{
 public:
     explicit ThreadPool(size_t);
     ~ThreadPool();
@@ -25,18 +26,14 @@ public:
     -> std::future<typename std::result_of<F(Args...)>::type>;
 
 private:
-    // need to keep track of threads so we can join them
     std::vector<std::thread> workers_;
-    // the task queue
     std::queue<std::function<void()>> tasks_;
 
-    // synchronization
     std::mutex queue_mutex_;
     std::condition_variable condition_;
     bool stop_;
 };
 
-// the implementation of enqueue needs to be in the header file
 template<class F, class... Args>
 auto ThreadPool::enqueue(F&& f, Args&&... args)
 -> std::future<typename std::result_of<F(Args...)>::type>
@@ -51,7 +48,6 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
     {
         std::unique_lock<std::mutex> lock(queue_mutex_);
 
-        // don't allow enqueueing after stopping the pool
         if(stop_)
             throw std::runtime_error("enqueue on stopped ThreadPool");
 

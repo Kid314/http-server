@@ -23,23 +23,27 @@ void set_non_blocking(int fd) {
 }
 
 void setup_routes(Router& router) {
-    router.add_route("/", [](const HttpRequest&, HttpResponse& res) {
+    router.add_route("/", [](const HttpRequest&, HttpResponse& res)
+    {
         res.set_body("<html><body><h1>Welcome!</h1></body></html>");
         res.add_header("Content-Type", "text/html");
     });
-    router.add_route("/hello", [](const HttpRequest&, HttpResponse& res) {
+    router.add_route("/hello", [](const HttpRequest&, HttpResponse& res)
+    {
         res.set_body("<html><body><h1>Hello, World!</h1></body></html>");
         res.add_header("Content-Type", "text/html");
     });
 }
 
 int main() {
-    try {
+    try
+    {
         socketRAII listen_sock(socket(AF_INET, SOCK_STREAM, 0));
         if (!listen_sock.is_alive()) throw std::runtime_error("Failed to create socket");
 
         int reuse = 1;
-        if (setsockopt(listen_sock.get_fd(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        if (setsockopt(listen_sock.get_fd(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+        {
             throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
         }
 
@@ -48,11 +52,13 @@ int main() {
         server_addr.sin_addr.s_addr = INADDR_ANY;
         server_addr.sin_port = htons(PORT);
 
-        if (bind(listen_sock.get_fd(), (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        if (bind(listen_sock.get_fd(), (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+        {
             throw std::runtime_error("Failed to bind");
         }
 
-        if (listen(listen_sock.get_fd(), SOMAXCONN) < 0) {
+        if (listen(listen_sock.get_fd(), SOMAXCONN) < 0)
+        {
             throw std::runtime_error("Failed to listen");
         }
 
@@ -74,39 +80,52 @@ int main() {
                 const auto& event = reactor.get_event(i);
                 int fd = event.data.fd;
 
-                if (fd == listen_sock.get_fd()) {
-                    while (true) {
+                if (fd == listen_sock.get_fd())
+                {
+                    while (true)
+                    {
                         sockaddr_in client_addr{};
                         socklen_t client_len = sizeof(client_addr);
                         int conn_fd = accept(listen_sock.get_fd(), (struct sockaddr*)&client_addr, &client_len);
-                        if (conn_fd > 0) {
+                        if (conn_fd > 0)
+                        {
                             set_non_blocking(conn_fd);
                             connections[conn_fd].init(socketRAII(conn_fd), &reactor, &router);
-                        } else {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK) break; // Done accepting
+                        }
+                        else
+                        {
+                            if (errno == EAGAIN || errno == EWOULDBLOCK) break;
                             std::cerr << "accept failed" << std::endl;
                             break;
                         }
                     }
-                } else {
-                    // Use a raw pointer to avoid issues with map reallocations if we pass a reference
+                }
+                else
+                {
                     HttpConnection* conn = &connections.at(fd);
-                    pool.enqueue([conn, events = event.events] { 
+                    pool.enqueue([conn, events = event.events]
+                    {
                         conn->handle_events(events); 
                     });
                 }
             }
 
             // Clean up closed connections
-            for (auto it = connections.begin(); it != connections.end(); ) {
-                if (it->second.is_to_be_closed()) {
+            for (auto it = connections.begin(); it != connections.end(); )
+            {
+                if (it->second.is_to_be_closed())
+                {
                     it = connections.erase(it);
-                } else {
+                }
+                else
+                {
                     ++it;
                 }
             }
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cerr << "Exception: " << e.what() << std::endl;
         return 1;
     }

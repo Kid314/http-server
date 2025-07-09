@@ -10,7 +10,8 @@
 #include "router/router.h"
 
 // Represents an HTTP Request
-struct HttpRequest {
+struct HttpRequest
+{
     std::string_view method;
     std::string_view path;
     std::string_view version;
@@ -20,7 +21,8 @@ struct HttpRequest {
 };
 
 // Represents an HTTP Response
-class HttpResponse {
+class HttpResponse
+{
 public:
     void set_status_code(int code, std::string_view message);
     void add_header(std::string_view key, std::string_view value);
@@ -34,7 +36,8 @@ private:
     std::string body_;
 };
 
-class HttpConnection {
+class HttpConnection
+{
 public:
     HttpConnection() = default;
     void init(socketRAII&& sock, class EpollReactor* reactor, Router* router);

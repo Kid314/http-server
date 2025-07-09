@@ -22,11 +22,10 @@ public:
     [[nodiscard]] int get_fd() const;
     [[nodiscard]] bool is_alive() const;
 
-    // Resets the socket, closing the old one if present
     void reset(int new_fd = -1);
 
 private:
-    int fd_; // Renamed to avoid conflict with the method name
+    int fd_;
 };
 
 #endif //SOCKETRAII_H
