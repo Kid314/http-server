@@ -9,7 +9,6 @@
 #include "sendbuffer/sendbuffer.h"
 #include "router/router.h"
 
-// Represents an HTTP Request
 struct HttpRequest
 {
     std::string_view method;
@@ -17,10 +16,9 @@ struct HttpRequest
     std::string_view version;
     std::map<std::string_view, std::string_view> headers;
     std::string_view body;
-    std::string raw_data; // To hold the actual data for string_views
+    std::string raw_data;
 };
 
-// Represents an HTTP Response
 class HttpResponse
 {
 public:

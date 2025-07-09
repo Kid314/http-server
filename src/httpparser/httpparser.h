@@ -8,7 +8,8 @@ class HttpParser
 {
 public:
     enum ParseResult { Good, Bad, Incomplete };
-    static ParseResult parse_request(std::string_view data, HttpRequest& req);
+
+    static ParseResult parse_request(std::string_view data, HttpRequest &req);
 };
 
 #endif //HTTPPARSER_H

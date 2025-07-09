@@ -6,8 +6,8 @@
 #include <map>
 #include <string_view>
 
-class HttpResponse; // Forward declaration
-class HttpRequest;  // Forward declaration
+class HttpResponse;
+class HttpRequest;
 
 using HttpHandler = std::function<void(const HttpRequest&, HttpResponse&)>;
 
