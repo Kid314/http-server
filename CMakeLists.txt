@@ -7,7 +7,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Threads REQUIRED)
 
-add_executable(http-server src/main.cpp)
+add_executable(http-server src/main.cpp
+        src/Epoller/Epoll.cpp
+        src/threadpool/threadpool.cpp)
 
 target_link_libraries(http-server Threads::Threads)
 
