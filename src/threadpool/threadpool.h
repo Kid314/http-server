@@ -23,6 +23,10 @@ private:
 public:
     explicit threadpool(size_t);
     ~threadpool();
+    threadpool(const threadpool&)=delete;
+    threadpool(threadpool&&)=delete;
+    threadpool& operator=(const threadpool&)=delete;
+    threadpool& operator=(threadpool&&)=delete;
     template<typename F,typename... Args>
     auto enqueue(F&& f,Args&&... args) -> std::future<std::invoke_result_t<F,Args...>>;
 };

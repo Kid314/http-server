@@ -17,6 +17,10 @@ private:
 public:
     explicit Epoll(int);
     ~Epoll();
+    Epoll(const Epoll&) = delete;
+    Epoll& operator=(const Epoll&) = delete;
+    Epoll(Epoll&&) = delete;
+    Epoll& operator=(Epoll&&) = delete;
     inline void add_fd(int,uint32_t);
     inline void mod_fd(int,uint32_t);
     inline void del_fd(int);
