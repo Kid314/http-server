@@ -21,6 +21,8 @@ public:
     inline void mod_fd(int,uint32_t);
     inline void del_fd(int);
     [[nodiscard]] inline int wait(int);
+    [[nodiscard]] inline int get_fd(int) const;
+    [[nodiscard]] inline uint32_t get_events(int) const;
 };
 
 
