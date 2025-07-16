@@ -19,10 +19,6 @@ int SocketRAII::get_fd() const
 int SocketRAII::release()
 {
     int temp_fd=fd;
-    if (fd!=-1)
-    {
-        ::close(fd);
-    }
     fd=-1;
     return temp_fd;
 }

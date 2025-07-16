@@ -51,6 +51,7 @@ inline int Epoll::wait(int time_op)
     {
         throw std::runtime_error("epoll wait failed");
     }
+    return events_num;
 }
 [[nodiscard]] inline int Epoll::get_fd(int index) const
 {
@@ -66,6 +67,6 @@ inline int Epoll::wait(int time_op)
     {
         throw std::runtime_error("get_events::out of epoll_events range");
     }
-    return epoll_events[index].data.fd;
+    return epoll_events[index].events;
 }
 
