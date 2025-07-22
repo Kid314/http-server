@@ -1,11 +1,9 @@
-#include<iostream>
-int hello()
-{
-    return 1;
-}
+#include "HttpServer/HttpServer.h"
+
 int main()
 {
-    std::cout<<"hello "<<hello()<<"\n";
+    HttpServer server1(8080,16,30);
+    server1.run();
     return 0;
 }
 

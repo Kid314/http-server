@@ -46,7 +46,7 @@ void HttpServer::close_connect(int fd)
         client_sockets.erase(fd);
     }
 }
-HttpServer::HttpServer(int new_port, int max_threadNum,int max_eventsNum):port(new_port),tpool(max_threadNum),epoller(max_eventsNum),listen_socket(init_lisSock())
+HttpServer::HttpServer(int new_port, int max_threadNum,int max_events):port(new_port),tpool(max_threadNum),epoller(max_events),listen_socket(init_lisSock())
 {
 
 }
