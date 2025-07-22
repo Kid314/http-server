@@ -17,7 +17,7 @@ Epoll::~Epoll()
 {
     close(epoll_fd);
 }
-inline void Epoll::add_fd(int fd,uint32_t events)
+void Epoll::add_fd(int fd,uint32_t events)
 {
     struct epoll_event temp_event{};
     temp_event.data.fd=fd;
@@ -27,7 +27,7 @@ inline void Epoll::add_fd(int fd,uint32_t events)
         throw std::runtime_error("epoll add failed");
     }
 }
-inline void Epoll::mod_fd(int fd,uint32_t events)
+void Epoll::mod_fd(int fd,uint32_t events)
 {
     struct epoll_event temp_event{};
     temp_event.data.fd=fd;
@@ -44,7 +44,7 @@ void Epoll::del_fd(int fd)
         throw std::runtime_error("epoll del failed");
     }
 }
-inline int Epoll::wait(int time_op)
+int Epoll::wait(int time_op)
 {
     int events_num=epoll_wait(epoll_fd,epoll_events.data(),static_cast<int>(epoll_events.size()),time_op);
     if (events_num<0)
@@ -53,7 +53,7 @@ inline int Epoll::wait(int time_op)
     }
     return events_num;
 }
-[[nodiscard]] inline int Epoll::get_fd(int index) const
+[[nodiscard]] int Epoll::get_fd(int index) const
 {
     if (index<0||index>=epoll_events.size())
     {
@@ -61,7 +61,7 @@ inline int Epoll::wait(int time_op)
     }
     return epoll_events[index].data.fd;
 }
-[[nodiscard]] inline uint32_t Epoll::get_events(int index) const
+[[nodiscard]] uint32_t Epoll::get_events(int index) const
 {
     if (index<0||index>=epoll_events.size())
     {

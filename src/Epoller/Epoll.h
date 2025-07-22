@@ -21,12 +21,12 @@ public:
     Epoll& operator=(const Epoll&) = delete;
     Epoll(Epoll&&) = delete;
     Epoll& operator=(Epoll&&) = delete;
-    inline void add_fd(int,uint32_t);
-    inline void mod_fd(int,uint32_t);
-    inline void del_fd(int);
-    [[nodiscard]] inline int wait(int);
-    [[nodiscard]] inline int get_fd(int) const;
-    [[nodiscard]] inline uint32_t get_events(int) const;
+    void add_fd(int,uint32_t);
+    void mod_fd(int,uint32_t);
+    void del_fd(int);
+    [[nodiscard]] int wait(int);
+    [[nodiscard]] int get_fd(int) const;
+    [[nodiscard]] uint32_t get_events(int) const;
 };
 
 

@@ -21,9 +21,9 @@ public:
     SocketRAII(SocketRAII&&) noexcept;
     SocketRAII& operator=(SocketRAII&&) noexcept;
 
-    [[nodiscard]] inline int get_fd() const;
-    [[nodiscard]] inline int release();
-    inline void reset(int);
+    [[nodiscard]] int get_fd() const;
+    [[nodiscard]] int release();
+    void reset(int);
 };
 
 
