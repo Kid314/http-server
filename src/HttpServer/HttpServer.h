@@ -7,8 +7,7 @@
 #include "../Epoller/Epoll.h"
 #include "../SocketRAII/SocketRAII.h"
 #include "../threadpool/threadpool.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
+
 #include <unordered_map>
 class HttpServer
 {
@@ -24,6 +23,7 @@ private:
     void client_event(int);
     void close_connect(int);
 public:
+    std::atomic<bool> is_running;
     explicit HttpServer(int,int,int);
     ~HttpServer();
     void run();

@@ -3,7 +3,8 @@
 //
 
 #include "Epoll.h"
-
+#include <cerrno>
+#include <csignal>
 #include <stdexcept>
 
 Epoll::Epoll(int maxEvents_num):epoll_fd(epoll_create1(0)),epoll_events(maxEvents_num)
@@ -49,6 +50,10 @@ int Epoll::wait(int time_op)
     int events_num=epoll_wait(epoll_fd,epoll_events.data(),static_cast<int>(epoll_events.size()),time_op);
     if (events_num<0)
     {
+        if (errno==EINTR)
+        {
+            return 0;
+        }
         throw std::runtime_error("epoll wait failed");
     }
     return events_num;

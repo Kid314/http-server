@@ -14,11 +14,10 @@ threadpool::threadpool(size_t thread_num):is_stop(false)
 }
 threadpool::~threadpool()
 {
+    if (!is_stop)
     {
-        std::unique_lock<std::mutex> q_lock(queue_lock);
-        is_stop=true;
+        shutdown();
     }
-    cv.notify_all();
 }
 // template<typename F,typename... Args>
 // auto threadpool::enqueue(F&& f,Args&&... args) -> std::future<std::invoke_result_t<F,Args...>>
@@ -61,4 +60,13 @@ void threadpool::work()
         }
         task();
     }
+}
+void threadpool::shutdown()
+{
+    {
+        std::unique_lock<std::mutex> q_lock(queue_lock);
+        is_stop=true;
+    }
+    cv.notify_all();
+    all_workers.clear();
 }

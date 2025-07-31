@@ -23,6 +23,7 @@ private:
 public:
     explicit threadpool(size_t);
     ~threadpool();
+    void shutdown();
     threadpool(const threadpool&)=delete;
     threadpool(threadpool&&)=delete;
     threadpool& operator=(const threadpool&)=delete;
