@@ -68,5 +68,5 @@ void threadpool::shutdown()
         is_stop=true;
     }
     cv.notify_all();
-    all_workers.clear();
+    //all_workers.clear();
 }

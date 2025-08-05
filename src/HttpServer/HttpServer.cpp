@@ -1,17 +1,40 @@
 //
 // Created by kid314 on 25-7-11.
 //
-
 #include "HttpServer.h"
 #include <unistd.h>
-#include <string>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <cstring>
+#include <cerrno>
+#include <stdexcept>
 #include <unistd.h>
-#include <string>
-SocketRAII HttpServer::init_lisSock()
+
+void setNonBlocking(int fd)
+{
+    int flags=fcntl(fd,F_GETFL,0);
+    if (flags==-1)
+    {
+        close(fd);
+        throw std::runtime_error("F_GETFL error : "+std::to_string(fd));
+    }
+    if (fcntl(fd,F_SETFL,flags|O_NONBLOCK)==-1)
+    {
+        close(fd);
+        throw std::runtime_error("F_SETFL error : "+std::to_string(fd));
+    }
+}
+
+HttpConnection::HttpConnection(int fd):socket(fd),write_offset(0)
+{
+
+}
+HttpServer::HttpServer(int set_port, int max_events, int max_threads):port(set_port),epoller(max_events),tpool(max_threads),listen_fd(init_listen_fd()),is_running(true)
+{
+
+}
+SocketRAII HttpServer::init_listen_fd()
 {
     int fd=socket(AF_INET,SOCK_STREAM,0);
     if (fd<0)
@@ -41,112 +64,19 @@ SocketRAII HttpServer::init_lisSock()
     printf("kid start\n");
     return temp;
 }
-void HttpServer::client_event(int fd)
+HttpServer::~HttpServer()
 {
-    // std::vector<char> buffer;
-    // char temp_buffer[4096];
-    // ssize_t byte_read;
-    //
-    // while (true)
-    // {
-    //     byte_read=read(fd,temp_buffer,sizeof(temp_buffer));
-    //     if (byte_read>0)
-    //     {
-    //         buffer.insert(buffer.end(),temp_buffer,temp_buffer+byte_read);
-    //     }
-    //     else if (byte_read==0)
-    //     {
-    //         close_connect(fd);
-    //         return ;
-    //     }
-    //     else
-    //     {
-    //         if (errno==EAGAIN||errno==EWOULDBLOCK)
-    //         {
-    //             break;
-    //         }
-    //         close_connect(fd);
-    //         throw std::runtime_error("read failed");
-    //     }
-    // }
-    std::string html_content="<html><body><h1>hello</h1></body></html>";
-    std::string http_response=
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html; charset=UTF-8\r\n"
-        "Content-Length: " + std::to_string(html_content.length()) + "\r\n"
-        "Connection: close\r\n" // 我们将主动关闭连接
-        "\r\n"
-        + html_content;
-    int flags=fcntl(fd,F_GETFL,0);
-    if (flags==-1)
+    is_running=false;
+    tpool.shutdown();
     {
-        close_connect(fd);
-        throw std::runtime_error("fcntl F_GETFL failed");
+        std::lock_guard<std::mutex> lock(conn_lock);
+        connections.clear();
     }
-    if (fcntl(fd,F_SETFL,flags&~O_NONBLOCK)==-1)
-    {
-        close_connect(fd);
-        throw std::runtime_error("fcntl F_SETFL to BLOCK failed");
-    }
-    ssize_t total_sent=0;
-    ssize_t byte_sent;
-    while (total_sent<http_response.length())
-    {
-        byte_sent=write(fd,http_response.c_str()+total_sent,http_response.length()-total_sent);
-        if (byte_sent<0)
-        {
-            close_connect(fd);
-            throw std::runtime_error("write failed");
-        }
-        total_sent+=byte_sent;
-    }
-    close_connect(fd);
-}
-void HttpServer::close_connect(int fd)
-{
-    epoller.del_fd(fd);
-    {
-        std::lock_guard<std::mutex> lock(cs_lock);
-        client_sockets.erase(fd);
-    }
-}
-HttpServer::HttpServer(int new_port, int max_threadNum,int max_events):port(new_port),tpool(max_threadNum),epoller(max_events),listen_socket(init_lisSock()),is_running(true)
-{
-    epoller.add_fd(listen_socket.get_fd(),EPOLLIN|EPOLLET);
-}
-void HttpServer::new_connect()
-{
-    struct sockaddr_in client_addr={};
-    socklen_t client_addr_len=sizeof(client_addr);
-    while (true)
-    {
-        int client_fd=accept(listen_socket.get_fd(),reinterpret_cast<struct sockaddr *>(&client_addr),&client_addr_len);
-        if (client_fd<0)
-        {
-            break;
-        }
-        int flags=fcntl(client_fd,F_GETFL,0);
-        if (flags==-1)
-        {
-            close_connect(client_fd);
-            throw std::runtime_error("fcntl F_GETFL failed");
-        }
-        if (fcntl(client_fd,F_SETFL,flags|O_NONBLOCK)==-1)
-        {
-            close_connect(client_fd);
-            throw std::runtime_error("fcntl F_SETFL O_NONBLOCK failed");
-        }
-        //printf("new connection:fd=%d\n",client_fd);
-        epoller.add_fd(client_fd,EPOLLIN|EPOLLET);
-        {
-            std::lock_guard<std::mutex> lock(cs_lock);
-            client_sockets.emplace(client_fd,SocketRAII(client_fd));
-        }
-    }
-
+    printf("kid314 shut down\n");
 }
 void HttpServer::run()
 {
+    epoller.add_fd(listen_fd.get_fd(),EPOLLIN|EPOLLET);
     while (is_running)
     {
         int event_count=epoller.wait(-1);
@@ -154,27 +84,137 @@ void HttpServer::run()
         {
             int event_fd=epoller.get_fd(i);
             uint32_t events=epoller.get_events(i);
-            if (event_fd==listen_socket.get_fd())
+            if (event_fd==listen_fd.get_fd())
             {
-                new_connect();
+                handleAccept();
             }
             else if (events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR))
             {
-                close_connect(event_fd);
+                closeConnection(event_fd);
             }
             else if (events&EPOLLIN)
             {
-                tpool.enqueue(&HttpServer::client_event,this,event_fd);
-                //client_event(event_fd);
+                tpool.enqueue(&HttpServer::handleRead,this,event_fd);
+            }
+            else if (events&EPOLLOUT)
+            {
+                tpool.enqueue(&HttpServer::handleWrite,this,event_fd);
             }
         }
     }
 }
-HttpServer::~HttpServer()
+void HttpServer::handleWrite(int fd)
 {
-    tpool.shutdown();
-    std::lock_guard<std::mutex> lock(cs_lock);
-    client_sockets.clear();
+    std::shared_ptr<HttpConnection> conn;
+    {
+        std::lock_guard<std::mutex> lock(conn_lock);
+        auto it=connections.find(fd);
+        if (it==connections.end())
+        {
+            return;
+        }
+        conn=it->second;
+    }
+    while (conn->write_offset<conn->write_buffer.length())
+    {
+        const char* send_data=conn->write_buffer.c_str()+conn->write_offset;
+        size_t send_bytes=conn->write_buffer.length()-conn->write_offset;
+        ssize_t sent_bytes=write(fd,send_data,send_bytes);
+        if (sent_bytes>0)
+        {
+            conn->write_offset+=sent_bytes;
+        }
+        else
+        {
+            if (sent_bytes<0&&(errno==EAGAIN||errno==EWOULDBLOCK))
+            {
+                return;
+            }
+            perror("write error");
+            closeConnection(fd);
+            return;
+        }
+    }
+    if (conn->write_offset>=conn->write_buffer.length())
+    {
+        conn->write_buffer.clear();
+        conn->write_offset=0;
+        epoller.mod_fd(fd,EPOLLIN|EPOLLET);
+        //closeConnection(fd);
+    }
+}
+void HttpServer::handleRead(int fd)
+{
+    std::shared_ptr<HttpConnection> conn;
+    {
+        std::lock_guard<std::mutex> lock(conn_lock);
+        auto it=connections.find(fd);
+        if (it==connections.end())
+        {
+            return;
+        }
+        conn=it->second;
+    }
+    char buffer[4096];
+    while (true)
+    {
+        ssize_t read_bytes=read(fd,buffer,sizeof(buffer));
+        if (read_bytes>0)
+        {
+            conn->read_buffer.append(buffer,read_bytes);
+        }
+        else if (read_bytes==0)
+        {
+            closeConnection(fd);
+            return;
+        }
+        else
+        {
+            if (errno==EAGAIN||errno==EWOULDBLOCK)
+            {
+                break;
+            }
+            perror("read error");
+            closeConnection(fd);
+            return;
+        }
+    }
+    conn->write_buffer="HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nHello World\n";
+    conn->write_offset=0;
+    epoller.mod_fd(fd,EPOLLIN|EPOLLET|EPOLLOUT);
+}
+void HttpServer::handleAccept()
+{
+    struct sockaddr_in client_addr={};
+    socklen_t len =sizeof(client_addr);
+    while (true)
+    {
+        int client_fd=accept(listen_fd.get_fd(),reinterpret_cast<struct sockaddr*>(&client_addr),&len);
+        if (client_fd<0)
+        {
+            if (errno==EAGAIN||errno==EWOULDBLOCK)
+            {
+                break;
+            }
+            throw std::runtime_error("accept error");
+        }
+        setNonBlocking(client_fd);
+        epoller.add_fd(client_fd,EPOLLIN|EPOLLET);
+        {
+            std::lock_guard<std::mutex> lock(conn_lock);
+            connections.emplace(client_fd,std::make_shared<HttpConnection>(client_fd));
+        }
+    }
+}
+void HttpServer::closeConnection(int fd)
+{
+    std::lock_guard<std::mutex> lock(conn_lock);
+    auto it=connections.find(fd);
+    if (it!=connections.end())
+    {
+        epoller.del_fd(fd);
+        connections.erase(it);
+    }
 }
 
 
