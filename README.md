@@ -41,6 +41,3 @@ Achieved **112,927 QPS** (Queries Per Second) in local testing using `wrk`.
 *   实现高并发、低延迟。
 *   保持清晰易读的代码风格。
 *   持续学习和迭代。
-
-
-gemini写的markdown:)因为我不怎么会写md啦:(
