@@ -33,19 +33,19 @@ int main()
     signal(SIGTERM,signal_handler);
     try
     {
-        spdlog::info("hello");
-        spdlog::error("can't");
-        HttpServer server1(8080,16,30);
-        server_ptr=&server1;
-        server1.run();
-        std::cout<<"server stop";
+        spdlog::info("server start");
+        auto server1=std::make_unique<HttpServer>(8080,16,30);
+        server_ptr=server1.get();
+        server1->run();
+        server_ptr=nullptr;
+        spdlog::info("server stop");
     }
     catch (const std::exception& error)
     {
+        spdlog::error("find error:{}",error.what());
         std::cerr<<"error:"<<error.what()<<"\n";
         return 1;
     }
-    server_ptr=nullptr;
     return 0;
 }
 
