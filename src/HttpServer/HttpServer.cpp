@@ -9,7 +9,6 @@
 #include <cstring>
 #include <cerrno>
 #include <stdexcept>
-#include <unistd.h>
 
 void setNonBlocking(int fd)
 {
@@ -34,7 +33,7 @@ HttpServer::HttpServer(int set_port, int max_events, int max_threads):port(set_p
 {
 
 }
-SocketRAII HttpServer::init_listen_fd()
+SocketRAII HttpServer::init_listen_fd() const
 {
     int fd=socket(AF_INET,SOCK_STREAM,0);
     if (fd<0)
@@ -72,7 +71,6 @@ HttpServer::~HttpServer()
         std::lock_guard<std::mutex> lock(conn_lock);
         connections.clear();
     }
-    printf("kid314 shut down\n");
 }
 void HttpServer::run()
 {
@@ -139,8 +137,8 @@ void HttpServer::handleWrite(int fd)
     {
         conn->write_buffer.clear();
         conn->write_offset=0;
-        epoller.mod_fd(fd,EPOLLIN|EPOLLET);
-        //closeConnection(fd);
+        //epoller.mod_fd(fd,EPOLLIN|EPOLLET);
+        closeConnection(fd);
     }
 }
 void HttpServer::handleRead(int fd)

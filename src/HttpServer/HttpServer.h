@@ -38,7 +38,7 @@ private:
     void handleRead(int);
     void handleWrite(int);
     void closeConnection(int);
-    [[nodiscard]] SocketRAII init_listen_fd();
+    [[nodiscard]] SocketRAII init_listen_fd() const;
     int port;
     SocketRAII listen_fd;
     Epoll epoller;

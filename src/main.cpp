@@ -1,6 +1,7 @@
 #include <iostream>
 #include "HttpServer/HttpServer.h"
 #include <csignal>
+#include "spdlog/spdlog.h"
 static HttpServer* server_ptr=nullptr;
 void signal_handler(int signal)
 {
@@ -18,6 +19,7 @@ int main()
     signal(SIGTERM,signal_handler);
     try
     {
+        spdlog::info("hello");
         HttpServer server1(8080,16,30);
         server_ptr=&server1;
         server1.run();
