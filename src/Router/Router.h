@@ -5,10 +5,11 @@
 #ifndef ROUTER_H
 #define ROUTER_H
 #include <memory>
+#include "../HttpRequest/HttpRequest.h"
 class Router
 {
 public:
-    static std::string route(std::string_view);
+    static std::string route(std::shared_ptr<HttpRequest>);
 private:
     static std::string sendHello();
     static std::string sendNoFound();

@@ -6,61 +6,11 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
-
 #include "spdlog/spdlog.h"
 
-std::string Router::route(std::string_view request_view)
+std::string Router::route(std::shared_ptr<HttpRequest> request)
 {
-    if (request_view.empty())
-    {
-        return sendNoFound();
-    }
-    size_t first_line=request_view.find("\r\n");
-    if (first_line==std::string_view::npos)
-    {
-        return sendNoFound();
-    }
-    std::string_view request_line=request_view.substr(0,first_line);
-    size_t method_pos=request_line.find(' ');
-    if (method_pos==std::string_view::npos)
-    {
-        return sendNoFound();
-    }
-    std::string_view method=request_line.substr(0,method_pos);
-    request_line.remove_prefix(method_pos+1);
-    size_t uri_pos=request_line.find(' ');
-    if (uri_pos==std::string_view::npos)
-    {
-        return sendNoFound();
-    }
-    std::string_view uri=request_line.substr(0,uri_pos);
 
-    if (method!="GET")
-    {
-        spdlog::error("is not GET method");
-        return sendNoFound();
-    }
-
-    if (uri=="/")
-    {
-        return sendHello();
-    }
-    else if (uri.starts_with("/public/"))
-    {
-        std::string_view filename_view(uri);
-        if (filename_view.empty()||filename_view.find("..")!=std::string_view::npos)
-        {
-            spdlog::error("has .. in uri");
-            return findFilleError();
-        }
-        std::string file_path(filename_view.substr(1));
-        return sendFile(file_path);
-    }
-    else
-    {
-        spdlog::error("uri error");
-        return findFilleError();
-    }
 }
 
 std::string Router::sendHello()
