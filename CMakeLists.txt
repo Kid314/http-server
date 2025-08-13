@@ -12,7 +12,11 @@ add_executable(http-server src/main.cpp
         src/threadpool/threadpool.cpp
         src/SocketRAII/SocketRAII.cpp
         src/HttpServer/HttpServer.cpp
-        src/HttpServer/HttpServer.h)
+        src/HttpServer/HttpServer.h
+        src/Router/Router.cpp
+        src/Router/Router.h
+        src/HttpRequest/HttpRequest.cpp
+        src/HttpRequest/HttpRequest.h)
 
 target_link_libraries(http-server Threads::Threads spdlog::spdlog)
 message(STATUS "Build target:http-server")

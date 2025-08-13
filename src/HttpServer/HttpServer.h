@@ -23,6 +23,7 @@ public:
     std::string read_buffer;
     std::string write_buffer;
     size_t write_offset;
+    std::mutex connection_lock;
 private:
     SocketRAII socket;
 };

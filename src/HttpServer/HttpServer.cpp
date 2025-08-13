@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cerrno>
 #include <stdexcept>
+#include "../Router/Router.h"
 
 void setNonBlocking(int fd)
 {
@@ -113,6 +114,7 @@ void HttpServer::handleWrite(int fd)
         }
         conn=it->second;
     }
+    std::lock_guard<std::mutex> lock(conn->connection_lock);
     while (conn->write_offset<conn->write_buffer.length())
     {
         const char* send_data=conn->write_buffer.c_str()+conn->write_offset;
@@ -154,12 +156,14 @@ void HttpServer::handleRead(int fd)
         conn=it->second;
     }
     char buffer[4096];
+    ssize_t read_bytes_total=0;
     while (true)
     {
         ssize_t read_bytes=read(fd,buffer,sizeof(buffer));
         if (read_bytes>0)
         {
             conn->read_buffer.append(buffer,read_bytes);
+            read_bytes_total+=read_bytes;
         }
         else if (read_bytes==0)
         {
@@ -177,8 +181,18 @@ void HttpServer::handleRead(int fd)
             return;
         }
     }
-    conn->write_buffer="HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nHello World\n";
-    conn->write_offset=0;
+    if (read_bytes_total==0)
+    {
+        return;
+    }
+    std::string http_response=Router::route(conn->read_buffer);
+    {
+        std::lock_guard<std::mutex> lock(conn->connection_lock);
+        conn->write_buffer=std::move(http_response);
+        conn->read_buffer.clear();
+        conn->write_offset=0;
+    }
+
     epoller.mod_fd(fd,EPOLLIN|EPOLLET|EPOLLOUT);
 }
 void HttpServer::handleAccept()
