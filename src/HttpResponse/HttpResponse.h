@@ -11,12 +11,13 @@ class HttpResponse
 {
 public:
     HttpResponse();
-    [[nodiscard]] std::string generate_response();
+    [[nodiscard]] std::string generate_response() const;
     int status;
-    int Content_length;
+    std::streamsize Content_length;
     std::optional<std::string> Content_Disposition;
     std::string Content_type;
     std::string http_version;
+    std::string body;
 };
 
 

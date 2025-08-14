@@ -139,8 +139,8 @@ void HttpServer::handleWrite(int fd)
     {
         conn->write_buffer.clear();
         conn->write_offset=0;
-        //epoller.mod_fd(fd,EPOLLIN|EPOLLET);
-        closeConnection(fd);
+        epoller.mod_fd(fd,EPOLLIN|EPOLLET);
+        //closeConnection(fd);
     }
 }
 void HttpServer::handleRead(int fd)
@@ -156,14 +156,12 @@ void HttpServer::handleRead(int fd)
         conn=it->second;
     }
     char buffer[4096];
-    ssize_t read_bytes_total=0;
     while (true)
     {
         ssize_t read_bytes=read(fd,buffer,sizeof(buffer));
         if (read_bytes>0)
         {
             conn->read_buffer.append(buffer,read_bytes);
-            read_bytes_total+=read_bytes;
         }
         else if (read_bytes==0)
         {
@@ -181,19 +179,26 @@ void HttpServer::handleRead(int fd)
             return;
         }
     }
-    if (read_bytes_total==0)
+    while (true)
     {
-        return;
+        size_t handle_pos=conn->read_buffer.find("\r\n\r\n");
+        if (handle_pos==std::string::npos)
+        {
+            break;
+        }
+        std::string_view each_request(conn->read_buffer.data(),handle_pos+4);
+        auto temp=std::make_shared<HttpRequest>(each_request);
+        std::string http_response=Router::route(temp).generate_response();
+        {
+            std::lock_guard<std::mutex> lock(conn->connection_lock);
+            conn->write_buffer+=http_response;
+        }
+        conn->read_buffer.erase(0,handle_pos+4);
     }
-    std::string http_response=Router::route(conn->read_buffer);
+    if (!conn->write_buffer.empty())
     {
-        std::lock_guard<std::mutex> lock(conn->connection_lock);
-        conn->write_buffer=std::move(http_response);
-        conn->read_buffer.clear();
-        conn->write_offset=0;
+        epoller.mod_fd(fd,EPOLLIN|EPOLLET|EPOLLOUT);
     }
-
-    epoller.mod_fd(fd,EPOLLIN|EPOLLET|EPOLLOUT);
 }
 void HttpServer::handleAccept()
 {

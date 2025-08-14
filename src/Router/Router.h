@@ -6,15 +6,24 @@
 #define ROUTER_H
 #include <memory>
 #include "../HttpRequest/HttpRequest.h"
+#include "../HttpResponse/HttpResponse.h"
 class Router
 {
 public:
-    static std::string route(std::shared_ptr<HttpRequest>);
+    static HttpResponse route(const std::shared_ptr<HttpRequest>&);
 private:
-    static std::string sendHello();
-    static std::string sendNoFound();
-    static std::string findFilleError();
-    static std::string sendFile(const std::string&);
+    static HttpResponse sendHello();
+    static HttpResponse sendNoFound();
+    static HttpResponse findFileError();
+    static HttpResponse sendFile(std::string_view,std::string_view);
 };
-
+static const std::string HELLO_WORLD_RESPONSE = []{
+    HttpResponse response;
+    response.http_version = "HTTP/1.1";
+    response.status = 200;
+    response.Content_type = "Content-Type: text/plain\r\n";
+    response.Content_length = 12;
+    response.body = "Hello World\n";
+    return response.generate_response();
+}();
 #endif //ROUTER_H

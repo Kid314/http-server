@@ -3,35 +3,75 @@
 //
 
 #include "Router.h"
-#include <cstring>
+
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include "spdlog/spdlog.h"
 
-std::string Router::route(std::shared_ptr<HttpRequest> request)
+HttpResponse Router::route(const std::shared_ptr<HttpRequest>& request)
 {
-
+    if (request->get_method()==Method::UNKNOWN||!request->get_path().has_value())
+    {
+        return sendNoFound();
+    }
+    std::string_view request_view=request->get_path().value();
+    if (request_view=="/")
+    {
+        return sendHello();
+    }
+    else if (request_view.starts_with("/public/"))
+    {
+        if (request_view.find("..")!=std::string_view::npos)
+        {
+            return sendNoFound();
+        }
+        return sendFile(request_view,request->get_http_version());
+    }
+    return sendNoFound();
 }
 
-std::string Router::sendHello()
+HttpResponse Router::sendHello()
 {
-    return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nHello World\n";
+    HttpResponse response;
+    response.http_version="HTTP/1.1";
+    response.status=200;
+    response.Content_type="Content-Type: text/plain\r\n";
+    response.Content_length=12;
+    response.body="Hello World\n";
+    response.Content_Disposition=std::nullopt;
+    return response;
 }
-std::string Router::sendNoFound()
+HttpResponse Router::sendNoFound()
 {
-    return "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 10\r\n\r\nNot Found\n";
+    HttpResponse response;
+    response.http_version="HTTP/1.1";
+    response.status=404;
+    response.Content_type="Content-Type: text/plain\r\n";
+    response.Content_length=10;
+    response.body="Not Found\n";
+    response.Content_Disposition=std::nullopt;
+    return response;
 }
-std::string Router::findFilleError()
+HttpResponse Router::findFileError()
 {
-    return "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 16\r\n\r\nFind file error\n";
+    HttpResponse response;
+    response.http_version="HTTP/1.1";
+    response.status=404;
+    response.Content_type="Content-Type: text/plain\r\n";
+    response.Content_length=16;
+    response.body="Find file error\n";
+    response.Content_Disposition=std::nullopt;
+    return response;
 }
-std::string Router::sendFile(const std::string & path)
+HttpResponse Router::sendFile(std::string_view path,std::string_view http_ver)
 {
-    std::ifstream file(path,std::ios::binary|std::ios::ate);
+    std::string file_path(path.substr(1));
+    std::ifstream file(file_path,std::ios::binary|std::ios::ate);
     if (!file.is_open())
     {
-        spdlog::error("can't open files");
-        return findFilleError();
+        spdlog::error("can't open files，current working directory:{}，{}",std::filesystem::current_path().c_str(),file_path);
+        return findFileError();
     }
     std::streamsize file_size=file.tellg();
     file.seekg(0,std::ios::beg);
@@ -41,20 +81,22 @@ std::string Router::sendFile(const std::string & path)
     {
         filename=std::string_view(path).substr(last_slash+1);
     }
-    std::ostringstream header_stream;
-    header_stream<<"HTTP/1.1 200 OK\r\n";
-    header_stream<<"Content-Type: application/octet-stream\r\n";
-    header_stream<<"Content-Length: "<<file_size<<"\r\n";
-    header_stream<<"Content-Disposition: attachment; filename=\""<<filename<<"\"\r\n";
-    header_stream<<"\r\n";
-    std::string response_header=header_stream.str();
-    response_header.resize(response_header.length()+file_size);
-    if (!file.read(&response_header[header_stream.str().length()],file_size))
+    HttpResponse response;
+    std::string http_version(http_ver);
+    response.status=200;
+    response.http_version=std::move(http_version);
+    response.Content_Disposition="Content-Disposition: attachment; filename=\"";
+    response.Content_Disposition->append(filename);
+    response.Content_Disposition->append("\"\r\n");
+    response.Content_length=file_size;
+    response.Content_type="Content-Type: application/octet-stream\r\n";
+    response.body.resize(file_size);
+    if (!file.read(&response.body[0],file_size))
     {
         spdlog::error("can't read file");
-        return findFilleError();
+        return findFileError();
     }
-    return response_header;
+    return response;
 }
 
 
