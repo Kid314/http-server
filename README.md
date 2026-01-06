@@ -1,67 +1,45 @@
-# High-Performance HTTP Server
+# High-Performance Inference Gateway (AI Infra)
 
-A project to build a high-performance HTTP server from scratch.
+![Language](https://img.shields.io/badge/language-C++-00599C.svg)
+![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Features
-
-*   **RAII Encapsulation:** File descriptors are managed using the RAII (Resource Acquisition Is Initialization) principle to ensure proper resource management.
-*   **Thread Pool:** CPU-intensive tasks are handled by a thread pool for efficient concurrency (using C++20 jthread).
-*   **Buffer Management:** Complete send buffer management using `epollout`.
-*   **Zero-Copy & String Views:** Utilizes `string_view` for efficient, zero-copy operations (C++17).
-*   **Static File Serving:** Supports downloading files from the `/public` directory.
-
-## Performance
-
-Achieved **100,000+ QPS** (Queries Per Second) in local testing using `wrk`.
-
-## Goals
-
-*   Achieve high concurrency and low latency.
-*   Maintain a clean and readable code style.
-*   Continuously learn and improve.
-*   Future versions will be upgraded to use C++23 coroutines.
-
-## Usage
-
-To download a file, place it in the `public` directory and access it via `http://localhost:8080/public/your_filename`.
-
-For example, to download `kid.txt`, you can use the following URL:
-
-```
-http://localhost:8080/public/kid.txt
-```
+本项目正从通用 HTTP Server 转型为 **高性能 AI 推理网关**。
+目前包含两个主要分支，分别对应 **AI 推理基础设施架构** (`AI-infra-dynamic-batching`) 和 **通用高性能网络基座** (`main`)。
 
 ---
 
-# 高性能 HTTP 服务器
+## 🔥 AI Infra 分支：高性能推理网关
+**Branch:** `AI-infra-dynamic-batching`
 
-一个从零开始编写的高性能 HTTP 服务器项目。
+这是本项目的核心开发分支，专注于解决大模型推理场景下的高并发与吞吐量瓶颈，实现了类 Triton 的核心调度机制。
 
-## 特性
+### 1. 动态批处理 (Dynamic Batching)
+*   **Continuous Batching 机制**：实现了请求队列与调度器，能够将同一时间窗口内的多个独立并发推理请求自动合并为 Batch 发送至后端。
+*   **吞吐量极大化**：显著减少了后端推理引擎（Inference Engine）的调用次数，在保证延迟 SLA 的前提下，大幅提升 GPU/NPU 的计算利用率。
 
-*   **RAII 封装:** 使用 RAII (资源获取即初始化) 的思想来封装文件描述符，确保资源被妥善管理。
-*   **线程池:** 使用线程池来处理 CPU 密集型任务，实现高效并发 (C++20 jthread)。
-*   **缓冲区管理:** 拥有完整的发送缓冲区管理机制 (epollout)。
-*   **零拷贝与视图:** 使用 `string_view` 来实现高效的零拷贝操作 (C++17)。
-*   **静态文件服务:** 支持下载 `/public` 目录下的文件。
+### 2. 高性能网络架构 (Reactor Model)
+*   **主从 Reactor 模型**：基于 `Epoll` + 非阻塞 I/O 实现 **One Loop Per Thread** 架构。
+*   **低上下文切换**：有效支持海量并发连接维持，通过减少线程间的上下文切换开销，实现高吞吐的网络 I/O 处理。
 
-## 性能
+### 3. 并发调度与低延迟
+*   **线程池优化**：基于 C++11 实现固定大小线程池，避免线程频繁创建与销毁带来的系统抖动。
+*   **优先级队列**：引入优先级调度策略，保障高优先级推理任务（如线上实时请求）能获得极低延迟的响应。
 
-使用 `wrk` 在本地测试中达到了 **100,000+ QPS** (每秒请求数)。
+### 4. 极致内存管理
+*   **对象池 (Object Pool)**：实现了连接对象与 Buffer 的池化复用，显著减少内存碎片和频繁的 `malloc/free` 开销。
+*   **RAII 资源管理**：全线采用 `std::shared_ptr` 与 `std::unique_ptr` 管理生命周期，彻底杜绝内存泄漏。
 
-## 目标
+---
 
-*   实现高并发、低延迟。
-*   保持清晰易读的代码风格。
-*   持续学习和迭代。
-*   未来将升级为 C++23 协程。
+## 🏗️ Main 分支：通用网络底层基座
+**Branch:** `main`
 
-## 用法
+该分支提供了稳健的底层 HTTP Server 实现，为上层 AI 网关提供了高效的网络传输支持，亦可作为通用的 C++ Web 服务器使用。
 
-要下载文件，请将其放入 `public` 目录，然后通过 `http://localhost:8080/public/你的文件名` 进行访问。
+*   **RAII 封装**：对文件描述符（FD）、Socket 资源进行严格的 RAII 封装，确保资源安全释放。
+*   **零拷贝 (Zero-Copy)**：核心解析层大量使用 C++17 `std::string_view`，避免不必要的内存拷贝，提升数据包解析效率。
+*   **高效缓冲管理**：实现了基于 `epollout` 事件触发的发送缓冲区机制，平滑处理大数据包发送。
+*   **静态资源服务**：支持高效的静态文件读取与传输（支持 `/public` 目录），并处理了 HTTP Keep-Alive 连接复用。
 
-例如，要下载 `kid.txt`，您可以使用以下 URL：
-
-```
-http://localhost:8080/public/kid.txt
-```
+---
